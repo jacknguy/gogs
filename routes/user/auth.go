@@ -11,6 +11,11 @@ import (
 	"github.com/go-macaron/captcha"
 	log "gopkg.in/clog.v1"
 
+	"net/http"
+	"io/ioutil"
+	"bytes"
+	"encoding/json"
+
 	"github.com/gogits/gogs/models"
 	"github.com/gogits/gogs/models/errors"
 	"github.com/gogits/gogs/pkg/context"
@@ -80,6 +85,7 @@ func isValidRedirect(url string) bool {
 }
 
 func Login(c *context.Context) {
+	println("Login:83")
 	c.Data["Title"] = c.Tr("sign_in")
 
 	// Check auto-login.
@@ -138,12 +144,33 @@ func afterLogin(c *context.Context, u *models.User, remember bool) {
 }
 
 func LoginPost(c *context.Context, f form.SignIn) {
+	println("LoginPost:147")
 	c.Data["Title"] = c.Tr("sign_in")
 
 	if c.HasError() {
 		c.Success(LOGIN)
 		return
 	}
+	//BEGIN OKTA AUTH CODE
+	println("Validing password for user: " + f.UserName);
+	var jsonStr = []byte(`{"username":"`+f.UserName+`", "password":"`+f.Password+`"}`);
+	println(string(jsonStr))
+	//var jsonStr = []byte(`{"username":`+u.Name+`}`)
+	url := "https://servicenowsignon.okta.com/api/v1/authn";
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	println(string(body));
+	var m map[string]interface{}
+	err = json.Unmarshal(body, &m)
+	println(m["status"].(string))
+	//END OKTA AUTH CODE
 
 	u, err := models.UserSignIn(f.UserName, f.Password)
 	if err != nil {
