@@ -20,6 +20,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"net/http"
+	"io/ioutil"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
@@ -319,6 +322,25 @@ func (u *User) EncodePasswd() {
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
+
+	//BEGIN OKTA AUTH CODE
+	println("Validing password for user: " + u.Name);
+	var jsonStr = []byte(`{"username":"`+u.Name+`", "password":"`+passwd+`"}`);
+	println(string(jsonStr))
+	//var jsonStr = []byte(`{"username":`+u.Name+`}`)
+	url := "https://servicenowsignon.okta.com/api/v1/authn";
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+  req.Header.Set("X-Custom-Header", "myvalue")
+  req.Header.Set("Content-Type", "application/json")
+
+  client := &http.Client{}
+  resp, err := client.Do(req)
+  if err != nil {
+    panic(err)
+  }
+	body, _ := ioutil.ReadAll(resp.Body)
+	println(string(body));
+	//END OKTA AUTH CODE
 	newUser := &User{Passwd: passwd, Salt: u.Salt}
 	newUser.EncodePasswd()
 	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
