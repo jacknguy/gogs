@@ -169,7 +169,7 @@ func LoginPost(c *context.Context, f form.SignIn) {
 	println(string(body));
 	var m map[string]interface{}
 	err = json.Unmarshal(body, &m)
-	println(m["status"].(string))
+	//println(m["status"].(string))
 	//END OKTA AUTH CODE
 
 	u, err := models.UserSignIn(f.UserName, f.Password)
